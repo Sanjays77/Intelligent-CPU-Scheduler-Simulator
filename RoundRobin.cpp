@@ -1,111 +1,58 @@
 #include <iostream>
-#include <vector>
-#include <queue>
-#include <iomanip>
-#include <climits>
-#include <algorithm>  
-
 using namespace std;
 
 struct Process {
-    int pid, arrival, burst, remaining, completion, waiting, turnaround;
+    int id, burstTime, remainingTime, waitingTime, turnaroundTime;
 };
 
-void calculateRoundRobin(vector<Process>& processes, int quantum) {
-    int n = processes.size();
-    queue<int> q;
-    vector<bool> visited(n, false);
-    vector<pair<int, int>> gantt;
+int main() {
+    int n, timeQuantum;
+    cout << "Enter number of processes: ";
+    cin >> n;
+    cout << "Enter time quantum: ";
+    cin >> timeQuantum;
+
+    Process p[n];
+    for (int i = 0; i < n; i++) {
+        p[i].id = i + 1;
+        cout << "Enter Burst Time for P" << p[i].id << ": ";
+        cin >> p[i].burstTime;
+        p[i].remainingTime = p[i].burstTime;
+        p[i].waitingTime = 0;
+    }
 
     int time = 0, completed = 0;
-    for (auto& p : processes) p.remaining = p.burst;
-
-    
-    sort(processes.begin(), processes.end(), [](Process a, Process b) {
-        return a.arrival < b.arrival;
-    });
-
-    q.push(0);
-    visited[0] = true;
-
-    while (!q.empty()) {
-        int idx = q.front();
-        q.pop();
-
-        if (processes[idx].arrival > time) {
-            gantt.push_back({-1, processes[idx].arrival - time});
-            time = processes[idx].arrival;
-        }
-
-        int execTime = min(quantum, processes[idx].remaining);
-        gantt.push_back({processes[idx].pid, execTime});
-        time += execTime;
-        processes[idx].remaining -= execTime;
-
+    while (completed < n) {
+        bool done = true;
         for (int i = 0; i < n; i++) {
-            if (!visited[i] && processes[i].arrival <= time) {
-                q.push(i);
-                visited[i] = true;
-            }
-        }
-
-        if (processes[idx].remaining > 0) {
-            q.push(idx);
-        } else {
-            processes[idx].completion = time;
-            completed++;
-        }
-
-        if (q.empty() && completed < n) {
-            for (int i = 0; i < n; i++) {
-                if (!visited[i]) {
-                    q.push(i);
-                    visited[i] = true;
-                    break;
+            if (p[i].remainingTime > 0) {
+                done = false;
+                if (p[i].remainingTime > timeQuantum) {
+                    time += timeQuantum;
+                    p[i].remainingTime -= timeQuantum;
+                } else {
+                    time += p[i].remainingTime;
+                    p[i].waitingTime = time - p[i].burstTime;
+                    p[i].turnaroundTime = time;
+                    p[i].remainingTime = 0;
+                    completed++;
                 }
             }
         }
+        if (done) break;
     }
 
-    
-    double totalTAT = 0, totalWT = 0;
-    cout << "\nPID\tAT\tBT\tCT\tTAT\tWT\n";
-    for (auto& p : processes) {
-        p.turnaround = p.completion - p.arrival;
-        p.waiting = p.turnaround - p.burst;
-        cout << p.pid << "\t" << p.arrival << "\t" << p.burst << "\t" << p.completion << "\t" << p.turnaround << "\t" << p.waiting << "\n";
-        totalTAT += p.turnaround;
-        totalWT += p.waiting;
-    }
-
-    cout << fixed << setprecision(2);
-    cout << "\nAverage Turnaround Time: " << totalTAT / n << " ms";
-    cout << "\nAverage Waiting Time: " << totalWT / n << " ms\n";
-
-    // Print Gantt Chart
-    cout << "\nGantt Chart:\n";
-    for (auto& g : gantt) {
-        cout << "| ";
-        if (g.first == -1) cout << "Idle ";
-        else cout << "P" << g.first << " ";
-    }
-    cout << "|\n";
-}
-
-int main() {
-    int n, quantum;
-    cout << "Enter the number of processes: ";
-    cin >> n;
-    vector<Process> processes(n);
-
-    cout << "Enter process details (PID Arrival Burst):\n";
+    float totalWaitingTime = 0, totalTurnaroundTime = 0;
+    cout << "\nProcess\tBurst Time\tWaiting Time\tTurnaround Time\n";
     for (int i = 0; i < n; i++) {
-        cin >> processes[i].pid >> processes[i].arrival >> processes[i].burst;
+        totalWaitingTime += p[i].waitingTime;
+        totalTurnaroundTime += p[i].turnaroundTime;
+        cout << "P" << p[i].id << "\t" << p[i].burstTime << "\t\t"
+             << p[i].waitingTime << "\t\t" << p[i].turnaroundTime << endl;
     }
 
-    cout << "Enter Time Quantum: ";
-    cin >> quantum;
+    cout << "\nAverage Waiting Time: " << (totalWaitingTime / n);
+    cout << "\nAverage Turnaround Time: " << (totalTurnaroundTime / n) << endl;
 
-    calculateRoundRobin(processes, quantum);
     return 0;
 }
