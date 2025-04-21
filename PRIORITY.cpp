@@ -1,78 +1,14 @@
 #include <iostream>
-#include <vector>
 #include <algorithm>
-#include <iomanip>
-#include <climits>
 using namespace std;
 
 struct Process {
-    int pid, arrival, burst, start, finish, waiting, turnaround;
-    bool completed = false;
+    int id, burstTime, priority, waitingTime, turnaroundTime;
 };
 
-void calculateSJF(vector<Process> &processes) {
-    int n = processes.size();
-    int time = 0, completed = 0;
-    vector<pair<int, int>> gantt;
-
-    while (completed < n) {
-        int idx = -1;
-        int minBurst = INT_MAX;
-
-        for (int i = 0; i < n; i++) {
-            if (!processes[i].completed && processes[i].arrival <= time && processes[i].burst < minBurst) {
-                minBurst = processes[i].burst;
-                idx = i;
-            }
-        }
-
-        if (idx != -1) {
-            processes[idx].start = time;
-            processes[idx].waiting = time - processes[idx].arrival;
-            time += processes[idx].burst;
-            processes[idx].finish = time;
-            processes[idx].turnaround = processes[idx].finish - processes[idx].arrival;
-            processes[idx].completed = true;
-            completed++;
-            gantt.push_back({processes[idx].pid, processes[idx].burst});
-        } else {
-            gantt.push_back({-1, 1});
-            time++;
-        }
-    }
-
-    cout << "\nGantt Chart:\n ";
-    for (auto &g : gantt) cout << "--------";
-    cout << "\n|";
-    for (auto &g : gantt) {
-        if (g.first == -1) cout << "  Idle  |";
-        else cout << "  P" << g.first << "   |";
-    }
-    cout << "\n ";
-    for (auto &g : gantt) cout << "--------";
-    cout << "\n";
-
-    int current = 0;
-    cout << current;
-    for (auto &g : gantt) {
-        current += g.second;
-        cout << setw(8) << current;
-    }
-    cout << "\n";
-}
-
-void displayResults(vector<Process> &processes) {
-    double totalWT = 0, totalTAT = 0;
-    cout << "\nPID\tAT\tBT\tWT\tTAT\n";
-    for (auto &p : processes) {
-        cout << "P" << p.pid << "\t" << p.arrival << "\t" << p.burst << "\t"
-             << p.waiting << "\t" << p.turnaround << "\n";
-        totalWT += p.waiting;
-        totalTAT += p.turnaround;
-    }
-    cout << fixed << setprecision(2);
-    cout << "\nAverage Waiting Time: " << totalWT / processes.size() << " ms";
-    cout << "\nAverage Turnaround Time: " << totalTAT / processes.size() << " ms\n";
+// Function to sort by priority (ascending order)
+bool compare(Process a, Process b) {
+    return a.priority < b.priority;
 }
 
 int main() {
@@ -80,14 +16,44 @@ int main() {
     cout << "Enter number of processes: ";
     cin >> n;
 
-    vector<Process> processes(n);
-    cout << "Enter PID, Arrival Time, and Burst Time for each process:\n";
+    Process p[n];
+
+    cout << "Enter Burst Time and Priority for each process:\n";
     for (int i = 0; i < n; i++) {
-        cin >> processes[i].pid >> processes[i].arrival >> processes[i].burst;
+        p[i].id = i + 1;
+        cout << "P" << p[i].id << " Burst Time: ";
+        cin >> p[i].burstTime;
+        cout << "P" << p[i].id << " Priority: ";
+        cin >> p[i].priority;
     }
 
-    calculateSJF(processes);
-    displayResults(processes);
+    // Step 1: Sort by priority
+    sort(p, p + n, compare);
+
+    // Step 2: Calculate waiting time
+    p[0].waitingTime = 0;
+    for (int i = 1; i < n; i++) {
+        p[i].waitingTime = p[i - 1].waitingTime + p[i - 1].burstTime;
+    }
+
+    // Step 3: Calculate turnaround time
+    float totalWaitingTime = 0, totalTurnaroundTime = 0;
+    for (int i = 0; i < n; i++) {
+        p[i].turnaroundTime = p[i].waitingTime + p[i].burstTime;
+        totalWaitingTime += p[i].waitingTime;
+        totalTurnaroundTime += p[i].turnaroundTime;
+    }
+
+    // Step 4: Display results
+    cout << "\nProcess\tBurst Time\tPriority\tWaiting Time\tTurnaround Time\n";
+    for (int i = 0; i < n; i++) {
+        cout << "P" << p[i].id << "\t" << p[i].burstTime << "\t\t"
+             << p[i].priority << "\t\t" << p[i].waitingTime << "\t\t"
+             << p[i].turnaroundTime << endl;
+    }
+
+    cout << "\nAverage Waiting Time: " << totalWaitingTime / n;
+    cout << "\nAverage Turnaround Time: " << totalTurnaroundTime / n << endl;
 
     return 0;
 }
